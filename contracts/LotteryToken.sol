@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.3.2 (token/ERC20/ERC20.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity  >=0.4.22 <0.9.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -147,11 +147,11 @@ library SafeMath {
      * _Available since v3.4._
      */
     function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        unchecked {
+       // unchecked {
             uint256 c = a + b;
             if (c < a) return (false, 0);
             return (true, c);
-        }
+       // }
     }
 
     /**
@@ -160,10 +160,10 @@ library SafeMath {
      * _Available since v3.4._
      */
     function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        unchecked {
+       // unchecked {
             if (b > a) return (false, 0);
             return (true, a - b);
-        }
+      //  }
     }
 
     /**
@@ -172,7 +172,7 @@ library SafeMath {
      * _Available since v3.4._
      */
     function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        unchecked {
+       // unchecked {
             // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
             // benefit is lost if 'b' is also tested.
             // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
@@ -180,7 +180,7 @@ library SafeMath {
             uint256 c = a * b;
             if (c / a != b) return (false, 0);
             return (true, c);
-        }
+       // }
     }
 
     /**
@@ -189,10 +189,10 @@ library SafeMath {
      * _Available since v3.4._
      */
     function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        unchecked {
+       // unchecked {
             if (b == 0) return (false, 0);
             return (true, a / b);
-        }
+       // }
     }
 
     /**
@@ -201,10 +201,10 @@ library SafeMath {
      * _Available since v3.4._
      */
     function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        unchecked {
+       // unchecked {
             if (b == 0) return (false, 0);
             return (true, a % b);
-        }
+      //  }
     }
 
     /**
@@ -297,10 +297,10 @@ library SafeMath {
         uint256 b,
         string memory errorMessage
     ) internal pure returns (uint256) {
-        unchecked {
+       // unchecked {
             require(b <= a, errorMessage);
             return a - b;
-        }
+       // }
     }
 
     /**
@@ -320,10 +320,10 @@ library SafeMath {
         uint256 b,
         string memory errorMessage
     ) internal pure returns (uint256) {
-        unchecked {
+       // unchecked {
             require(b > 0, errorMessage);
             return a / b;
-        }
+        //}
     }
 
     /**
@@ -346,10 +346,10 @@ library SafeMath {
         uint256 b,
         string memory errorMessage
     ) internal pure returns (uint256) {
-        unchecked {
+       // unchecked {
             require(b > 0, errorMessage);
             return a % b;
-        }
+       // }
     }
 }
 
@@ -737,9 +737,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
 
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-        unchecked {
+       // unchecked {
             _approve(sender, _msgSender(), currentAllowance - amount);
-        }
+       // }
 
         return true;
     }
@@ -754,9 +754,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        unchecked {
+       // unchecked {
             _approve(_msgSender(), spender, currentAllowance - subtractedValue);
-        }
+       // }
 
         return true;
     }
@@ -799,9 +799,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
         _beforeTokenTransfer(sender, recipient, amount);
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-        unchecked {
+       // unchecked {
             _balances[sender] = senderBalance - amount;
-        }
+       // }
         _balances[recipient] += amount;
 
         emit Transfer(sender, recipient, amount);
@@ -814,9 +814,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
         _beforeTokenTransfer(sender, recipient, amount);
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-        unchecked {
+       // unchecked {
             _balances[sender] = senderBalance - amount;
-        }
+        //}
 
         uint256 burnAmount = amount.mul(BURN_FEE).div(10**2);
         uint256 adminTaxAmount = amount.mul(TAX_FEE).div(10**2);
@@ -844,9 +844,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
         _beforeTokenTransfer(sender, recipient, amount);
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-        unchecked {
+      //  unchecked {
             _balances[sender] = senderBalance - amount;
-        }
+       // }
         _balances[recipient] += amount;
 
         emit Transfer(sender, recipient, amount);
@@ -893,9 +893,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
 
         uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        unchecked {
+        //unchecked {
             _balances[account] = accountBalance - amount;
-        }
+       // }
         _totalSupply -= amount;
 
         emit Transfer(account, address(0), amount);

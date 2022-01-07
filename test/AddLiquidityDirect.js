@@ -4,7 +4,7 @@ const PancakeRouter = artifacts.require("PancakeRouter");
 const TestTransferFrom = artifacts.require("TransferFromTest");
 const PancakeFactory = artifacts.require("PancakeFactory");
 
-contract("AddLiquidity Contract", (accounts)=> {
+contract("AddLiquidity Direct Contract", (accounts)=> {
     let lotteryToken = null;
     let weth = null;
     let pancakeswaprouter = null;

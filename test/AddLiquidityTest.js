@@ -4,7 +4,7 @@ const PancakeRouter = artifacts.require("PancakeRouter");
 const TestTransferFrom = artifacts.require("TransferFromTest");
 const PancakeFactory = artifacts.require("PancakeFactory");
 
-contract("LotteryToken Contract", (accounts)=> {
+contract("AddLiquidity Contract", (accounts)=> {
     let lotteryToken = null;
     let weth = null;
     let pancakeswaprouter = null;
@@ -27,41 +27,42 @@ contract("LotteryToken Contract", (accounts)=> {
         console.log("TestTransfer Contract Address:-",testTransferAddr);
     });
     /**
-     * This section of the code test the basic function
-     * of our token
+     * This test add Liquidity to Pancake Swap by Calling the method
+     * through a middle man class
      */
-    it("Listen to all Emitted Events", async() =>{
-        lotteryToken.getPastEvents("Transfer").then(results =>{ 
-            for (let x in results) {
-                console.log(results[x].returnValues);
-            }
-        });
-    })
-    //Check TOken Name
-    it ("check for the name of Erc20 token", async() => {
-        const name = await lotteryToken.name();
-        console.log("Contract Name:-",name);
-        //assert(name == "🤑LotteryTokenv5.3");
-    });
     it ("check the balance of the ERC20 token", async() =>{
         const balance = await lotteryToken.balanceOf(accounts[0]);
         console.log("Balance of Token:-",balance.toString());
+        const balanceTwo = await lotteryToken.balanceOf(deployedTOAddr);
+        console.log("Balance of Token:-",balanceTwo.toString());
 
     });
-    it ("Checks for pancakeswap pair if it exist", async()=>{
-        const FactpairExist = await pancakefact.getPair("0x0269eD4F89Db282968aD2a3f7DDa7b2f84029cDF","0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd");
-        console.log("PancakeFactory Pair Exist:-",FactpairExist);
-    } );
 
-    it("Transfers Token from owner address to address one and from address one to two", async()=>{
-        const tokenTransferA = await lotteryToken.transfer(accounts[1],'10000000000');
-        console.log("Transferred From Owner:-",tokenTransferA);
-        //Check the balance of token in address one
-        const balance = await lotteryToken.balanceOf(accounts[1]);
-        console.log("Balance of Token in Address 1:-",balance.toString());
-        //transfer from address one to address two
-        const tokenTransferB = await lotteryToken.transfer(accounts[2],'1000000000',{from:accounts[1]});
-        console.log("Transferred From User:-",tokenTransferB);
+    it ("Test the testTransferFrom function", async() =>{
+        console.log("Message sender:-",testTransferFrom.address);
+        console.log("Account Zero:-",accounts[0]);
+        return lotteryToken.approve(testTransferFrom.address,10000000).then(()=>{
+            return testTransferFrom.tranferTest(contractAddress,accounts[1],100000);
+        } );
+        
+    });
+    it("Listen to all Emitted Events", async() =>{
+        lotteryToken.getPastEvents().then( results =>{ 
+            for (let x in results) {
+                console.log(results[x].returnValues)
+            }
+            
+        });
+    }); 
+    it ("Add liquidity to pancakeswap router",async() =>{
+        return (lotteryToken.approve(testTransferAddr,"1000000000000")).then(async ()=> {
+
+            return testTransferFrom.addLiquidityWeth(contractAddress,accounts[0],"100000000",1,1,{value:1}).then (async result =>{
+                    let bal = await lotteryToken.balanceOf(testTransferAddr)
+                    console.log("TestTransferBalance:-",bal.toString());
+                    console.log(result);
+            })
+        });
 
     });
     it("Listen to all Emitted Events", async() =>{
@@ -71,8 +72,11 @@ contract("LotteryToken Contract", (accounts)=> {
             }
             
         });
-    })
+    });
+    it ("Checks for pancakeswap pair if it exist", async()=>{
+        const FactpairExist = await pancakefact.getPair(lotteryToken.address,"0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd");
+        console.log("PancakeFactory Pair Exist:-",FactpairExist);
+    } );
+ 
 
-
-  
-})
+});

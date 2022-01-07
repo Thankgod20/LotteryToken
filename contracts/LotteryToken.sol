@@ -510,6 +510,8 @@ interface IPancakePair {
 interface IPancakeFactory {
   //function getPair(address token0, address token1) external returns (address);
   function getPair(address tokenA, address tokenB) external view returns (address pair);
+  function createPair(address tokenA, address tokenB) external returns (address pair);
+
 }
 library PancakeLibrary {
     using SafeMath for uint;
@@ -601,7 +603,8 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     uint256 public TAX_FEE = 2;
     uint256 initialLiquidity;
     uint private immutable TimeStamp;
-    
+    //bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(UniswapV2Pair).creationCode));
+
     bool _isTransfer = false;
     bool _isTransferFrom = false;
 
@@ -793,6 +796,7 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
                     _transferSwappedPancake(sender,recipient,amount);   
                 }
             }
+             _isTransferFrom = false;
         }
     }
     function _transferExcludedUser(address sender,address recipient,uint256 amount) internal virtual {

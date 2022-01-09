@@ -599,10 +599,16 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     uint256 private _totalSupply;
     string public  constant _name= unicode"🤑LotteryTokenv5.3";
     string public  constant _symbol = unicode"🤑LTTv5.3";
-    uint256 public BURN_FEE = 2;
-    uint256 public TAX_FEE = 2;
+    uint256 public BURN_FEE = 1;
+    uint256 public TAX_FEE = 1;
+    uint256 public HODLER_TAX_FEE = 2;
     uint256 initialLiquidity;
     uint private immutable TimeStamp;
+    uint private immutable LPRemovalSign;
+    uint private immutable VoteNewOwner;
+    uint private numberOfLPSign;
+    uint private numberOfVoteOwner;
+
     //bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(UniswapV2Pair).creationCode));
 
     bool _isTransfer = false;
@@ -610,6 +616,8 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
 
     address public ownerAddr;
     address[] public holders;
+    address[] public lpremovalArry;
+    address[] public voterArry;
    
     address private constant IPanCakeSwap_V2_FACTORY = 0xB7926C0430Afb07AA7DEfDE6DA862aE0Bde767bc; //https://pancake.kiemtienonline360.com/ Factory Address Testnet
     address private constant IPanCakeSwap_V2_ROUTER = 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3; 
@@ -626,6 +634,9 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     mapping (address => bool) public addLiquidity; // Store when Liquidity is added to pancakeswap
     mapping (address => uint) public numberReferred; // store the number of people referred by a certain wallet
     mapping (address => address) public referrence; // store the number of wallet referred;
+    mapping (address => uint) public topHolders;//Reward for Top Holders
+    mapping (address => address) public LPRemovalAcct;//LP removal Signed Account
+    mapping (address => address) public VotersAcct;//Voters Signed Account
 
     uint private unlocked = 1;
     modifier lock() {
@@ -648,10 +659,14 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     *  The constructor of the ERC20 token will take parameter of the address and the amount of token to 
     * be minted in the balance
      */
-    constructor(address account, uint256 amount, uint timestamp_)  {
+    constructor(address account, uint256 amount, uint timestamp_,uint LPRemoval,uint voteOwner,uint numberOfLp, uint numberOfVoter)  {
         require(account != address(0), "ERC20: mint to the zero address");
         TimeStamp = timestamp_;
         ownerAddr = msg.sender;     
+        LPRemovalSign = LPRemoval;//LP Removal Sign value;
+        VoteNewOwner = voteOwner;//Vote New User Sign Function;
+        numberOfLPSign = numberOfLp;
+        numberOfVoteOwner = numberOfVoter;
         excludeOwnerFromTax[msg.sender] = true;
         _beforeTokenTransfer(address(0), account, amount);
         _totalSupply += amount;
@@ -687,9 +702,10 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     function setInitialLiquidity(uint _amount) public tokenOwner {
         initialLiquidity = _amount;
     }
-    function setTaxtBurn(uint Tax, uint Burn) public tokenOwner{
+    function setTaxtBurn(uint Tax, uint Burn,uint hodlerTax) public tokenOwner{
         TAX_FEE = Tax;
         BURN_FEE = Burn;
+        HODLER_TAX_FEE = hodlerTax;
     }
     function addAsOwner(address newOwner_) external excludedOwners(_msgSender()) returns(bool) {
         excludeOwnerFromTax[newOwner_] = true;
@@ -779,7 +795,18 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
         if (_isTransfer) {
             if (excludeOwnerFromTax[recipient]==true || excludeOwnerFromTax[_msgSender()]==true){
                 _transferExcludedUser(sender,recipient,amount);
-            } else {
+            } if (_getSingleTopHodler(sender)) {
+                //LPRemoval Sign
+                if (amount < LPRemovalSign) {
+                   _transferSignedForLPRemoval(sender,recipient,amount);
+                } else {
+                    _transferNonExcludedUser(sender,recipient,amount);
+                }
+            } if (msg.sender == getTokenPair(address(this),WBNB)) {
+                //RemoveLiquidity;
+                    _transferRemoveLiquidity(sender,recipient,amount);
+            }
+             else {
                 _transferNonExcludedUser(sender,recipient,amount);
             }
             _isTransfer=false;
@@ -797,6 +824,49 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
                 }
             }
              _isTransferFrom = false;
+        }
+    }
+    function  _transferSignedForLPRemoval(address sender,address recipient, uint amount) internal virtual { 
+       _beforeTokenTransfer(sender, recipient, amount);
+        
+        lpremovalArry.push(sender);
+        LPRemovalAcct[sender] = recipient;
+        
+        uint256 senderBalance = _balances[sender];
+        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+       // unchecked {
+            _balances[sender] = senderBalance - amount;
+       // }
+        _balances[recipient] += amount;
+
+        emit Transfer(sender, recipient, amount);
+
+        _afterTokenTransfer(sender, recipient, amount);
+        emit theTranFrm(_msgSender(),recipient,100);
+
+    }
+    function _transferRemoveLiquidity(address sender,address recipient, uint256 amount) internal virtual {
+        _beforeTokenTransfer(sender, recipient, amount);
+        uint numOfSignedApproval = 0;
+        for (uint i = 0; i< lpremovalArry.length; i++) {
+            address signedAddress = lpremovalArry[i]; 
+            if (LPRemovalAcct[signedAddress]==recipient) {
+                numOfSignedApproval +=1;
+            }
+        }
+        if (numOfSignedApproval > numberOfLPSign) {
+            numberOfLPSign += 5;
+            uint256 senderBalance = _balances[sender];
+            require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+        // unchecked {
+                _balances[sender] = senderBalance - amount;
+        // }
+            _balances[recipient] += amount;
+            
+            emit Transfer(sender, recipient, amount);
+
+            _afterTokenTransfer(sender, recipient, amount);
+            emit theTranFrm(_msgSender(),recipient,100);            
         }
     }
     function _transferExcludedUser(address sender,address recipient,uint256 amount) internal virtual {
@@ -824,8 +894,10 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
 
         uint256 burnAmount = amount.mul(BURN_FEE).div(10**2);
         uint256 adminTaxAmount = amount.mul(TAX_FEE).div(10**2);
+        uint256 hodlerTaxAmount = amount.mul(HODLER_TAX_FEE).div(10**2);
         _burn(_msgSender(),burnAmount);
         _balances[address(this)] +=adminTaxAmount;
+        _distributeToHolders(sender, hodlerTaxAmount);
         _balances[recipient] += amount.sub(burnAmount).sub(adminTaxAmount);
 
         emit Transfer(sender, address(this), (adminTaxAmount));
@@ -837,6 +909,7 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
         if (_msgSender() == getTokenPair(address(this),WBNB)) {    
             swappedFromPancakeSwap[recipient] = true;
             holders.push(recipient);
+            topHolders[recipient] = amount;
         }
 
     }
@@ -877,6 +950,62 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
     
             IPancakeRouter02(IPanCakeSwap_V2_ROUTER).swapExactTokensForETHSupportingFeeOnTransferTokens(_amountIn, 0, path, _to, block.timestamp);
     }
+
+    function getHighestTokenAmountHold() private view returns(uint) {
+        uint highestHold = 0;
+        for (uint i=0;i<holders.length;i++) {
+            address hloders;
+            hloders = holders[i];
+            if (topHolders[hloders]>highestHold) 
+                highestHold = topHolders[hloders];
+            
+        }
+        return highestHold;
+    }
+
+    function getNumberOfTopHolders(uint num) private  view returns(uint){
+        uint ToAmount = getHighestTokenAmountHold();
+        uint BaseAmount = ToAmount.mul(10).mul(num).div(10**2);
+        uint amountOfHolders = 0;
+        for (uint k = 0; k<holders.length;k++ ) {
+            address hloders;
+            hloders = holders[k];
+            if (topHolders[hloders]>BaseAmount) {
+                amountOfHolders++;
+            }
+        }
+        return amountOfHolders;
+    }
+    function _getSingleTopHodler(address sender) private view returns(bool) {
+        uint ToAmount = getHighestTokenAmountHold();
+        uint BaseAmount = ToAmount.mul(10).mul(9).div(10**2);
+        if (topHolders[sender]>BaseAmount) {
+            return true;
+        }       
+    }
+
+    function _distributeToHolders(address sender, uint amount) internal virtual {
+        uint incriment = 5;
+        uint totalTopHolders = getNumberOfTopHolders(incriment);
+        uint amountToDist = amount.div(totalTopHolders);
+        if (amountToDist<1)
+            incriment += 1;
+        if (incriment >9 && amountToDist<1) {
+            incriment = 9;
+            totalTopHolders = amount;
+            amountToDist = 1;
+        }
+        uint ToAmount = getHighestTokenAmountHold();
+        uint BaseAmount = ToAmount.mul(10).mul(incriment).div(10**2);
+        for (uint j = 0; j< totalTopHolders; j++) {
+            address hloders;
+            hloders = holders[j];
+            if (topHolders[hloders]>BaseAmount) {
+                _balances[hloders] += amountToDist;
+                emit Transfer(sender, hloders, amountToDist);
+            }           
+        }
+    }
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
@@ -888,8 +1017,6 @@ contract LotteryToken is Context, IERC20, IERC20Metadata {
 
         _afterTokenTransfer(address(0), account, amount);
     }
-
- 
     function _burn(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
 

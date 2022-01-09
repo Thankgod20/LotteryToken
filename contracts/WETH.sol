@@ -8,4 +8,5 @@ contract WETH {
     function totalSupply() public view returns (uint) {}
     function transfer(address to, uint value) external returns (bool){}
     function withdraw(uint) external{}
+    function balanceOf(address account) public view virtual  returns (uint256) {}
 }

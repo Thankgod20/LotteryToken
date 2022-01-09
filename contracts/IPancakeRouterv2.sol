@@ -62,4 +62,5 @@ contract PancakeRouter  {
         address to,
         uint deadline
     ) external{}
+    function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts){}
 }
